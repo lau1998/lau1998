@@ -12,13 +12,19 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0   # <—— 非常关键，避免 detached HEAD
+
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.8
+
       - uses: actions/cache@v4
         name: Configure pip caching
         with:
@@ -26,20 +32,29 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
+
       - name: Install Python dependencies
-        run: |
-          python -m pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt
+
       - name: Update README
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |-
+        run: |
           python build_readme.py
+
+          echo "======= README AFTER REBUILD ======"
           cat README.md
+
+      - name: Show diff
+        run: git diff --color
+
       - name: Commit and push if changed
-        run: |-
-          git diff
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
-          git add -A
-          git commit -m "ci: update profile (automatically)" || exit 0
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+          git add README.md
+
+          # 如果没变化就跳过
+          git diff --cached --quiet && echo "No changes" && exit 0
+
+          git commit -m "ci: update profile (automatically)"
           git push
