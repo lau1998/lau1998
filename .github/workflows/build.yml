@@ -47,6 +47,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |-
           python build_readme.py
+          # 此处已打印 README.md 内容
           cat README.md
           
       - name: Commit and push if changed
@@ -60,3 +61,7 @@ jobs:
           git commit -m "ci: update profile (automatically)" || exit 0
           # 使用 GITHUB_TOKEN (拥有 contents: write 权限) 推送更改
           git push
+          
+          # 📢 按您的要求，在最后一步再次打印 README.md
+          echo "--- Final README.md Content After Push ---"
+          cat README.md
