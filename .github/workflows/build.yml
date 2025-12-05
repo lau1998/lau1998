@@ -54,7 +54,7 @@ jobs:
           git add README.md
 
           # 如果没变化就跳过
-          git diff --cached --quiet && echo "No changes" && exit 0
+          # git diff --cached --quiet && echo "No changes" && exit 0
 
           git commit -m "ci: update profile (automatically)"
           git push
