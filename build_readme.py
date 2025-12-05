@@ -59,6 +59,8 @@ def fetch_code_time():
         "https://gist.githubusercontent.com/pseudoyu/48675a7b5e3cca534e7817595d566003/raw/"
     )
 
+# fetch_blog_entries 函数已被移除
+
 def fetch_douban():
     # 模拟豆瓣动态
     # 请替换为您的实际实现
@@ -181,11 +183,11 @@ def main():
     # 检查 README 文件是否存在，如果不存在则创建包含标记的最小模板
     if not readme.exists():
         print(f"Warning: {README_FILE} not found. Creating a minimal one.")
+        # 移除了 'blog' 相关的模板行
         minimal_content = (
             "<!-- profile_header starts --><!-- profile_header ends -->\n"
             "<!-- github_stats starts --><!-- github_stats ends -->\n"
             "#### 👨🏻‍💻 This Week I Code With\n<!-- code_time starts --><!-- code_time ends -->\n"
-            "#### 📰 Recent Posts (Pseudoyu)\n<!-- blog starts --><!-- blog ends -->\n"
             "#### 🚀 CZH Love Blog\n<!-- czh_blog starts --><!-- czh_blog ends -->\n"
             "#### 🎧 Recent Digests\n<!-- douban starts --><!-- douban ends -->\n"
             "#### 💻 Recent Releases\n<!-- recent_releases starts --><!-- recent_releases ends -->\n"
@@ -213,12 +215,7 @@ def main():
         code_time_text = "\n```text\nCode time data fetch failed.\n```\n"
     rewritten = replace_chunk(rewritten, "code_time", code_time_text)
 
-    # 5. 更新 Pseudoyu 博客文章 (原有逻辑)
-    entries = fetch_blog_entries()[:6]
-    entries_md = "\n".join(
-        ["* <a href={url} target='_blank'>{title}</a>".format(**entry) for entry in entries]
-    )
-    rewritten = replace_chunk(rewritten, "blog", entries_md)
+    # 5. 更新 Pseudoyu 博客文章 (相关代码已移除)
 
     # 6. 更新您的 CZH Love 博客文章 (优化样式)
     czh_entries = fetch_czh_blog_entries()[:MAX_POSTS]
