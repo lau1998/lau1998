@@ -1,11 +1,10 @@
 name: 自动更新博客文章到 README
 
 on:
-  # 每天运行一次（例如，在世界标准时间 02:00）
-  schedule:
-    - cron: '0 2 * * *'
-  # 允许手动运行
+  push:
   workflow_dispatch:
+  schedule:
+    - cron: "0 0 */1 * *"
 
 jobs:
   update_readme:
