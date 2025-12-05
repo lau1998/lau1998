@@ -30,7 +30,7 @@ jobs:
 
       # 4. 运行 Python 脚本更新 README.md
       - name: Run Python script to update README
-        run: python update_readme.py
+        run: python build_readme.py
         
       # 5. 提交更改
       # 使用您的 secrets.GH_TOKEN 来提交更改。
