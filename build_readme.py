@@ -4,15 +4,17 @@ import os
 import datetime
 import pathlib
 import httpx
+import sys
 
-# 如果您没有安装 python_graphql_client，请在 requirements.txt 中添加它
+# 尝试导入 GraphqlClient
 try:
     from python_graphql_client import GraphqlClient
+    client = GraphqlClient(endpoint="https://api.github.com/graphql")
 except ImportError:
-    # 占位符类，避免程序在缺少依赖时崩溃
+    # 如果导入失败，创建模拟类并打印警告
     class GraphqlClient:
         def __init__(self, endpoint):
-            print("Warning: GraphqlClient is not installed. GitHub API functions will not work.")
+            print("Warning: GraphqlClient is not installed or import failed. GitHub API functions will not work.")
             pass
     client = GraphqlClient(endpoint="https://api.github.com/graphql")
     
@@ -23,7 +25,6 @@ MAX_POSTS = 8
 # --------------------
 
 root = pathlib.Path(__file__).parent.resolve()
-client = GraphqlClient(endpoint="https://api.github.com/graphql")
 
 # 确保在 GitHub Actions 中设置了 GH_TOKEN secret
 TOKEN = os.environ.get("GH_TOKEN", "")
@@ -41,29 +42,30 @@ def replace_chunk(content, marker, chunk, inline=False):
     chunk = "<!-- {} starts -->{}<!-- {} ends -->".format(marker, chunk, marker)
     return r.sub(chunk, content)
 
-# 此处省略 formatGMTime 和 make_query 函数，假设它们在您实际的环境中已定义并运行
-
-# --- 抓取函数 (MOCK 或简化版本，需要您确保其在您的环境中具有实际的实现) ---
+# --- 抓取函数 (MOCK 或简化版本) ---
 
 def fetch_releases(token):
-    # 模拟 GitHub Releases
-    # 请替换为您的实际实现
+    # 模拟 GitHub Releases - 请替换为您的实际实现
     return [
         {"repo": "icondog", "release": "v0.0.1", "url": "https://github.com/djyde/icondog/releases/tag/v0.0.1", "published_at": "2024-06-15"},
     ] 
 
 def fetch_code_time():
     """获取 WakaTime 代码时间统计 Gist"""
-    # 警告: fetch_code_time 依赖于 httpx 的实现
-    return httpx.get(
-        "https://gist.githubusercontent.com/pseudoyu/48675a7b5e3cca534e7817595d566003/raw/"
-    )
+    # 使用 httpx 获取，并添加简单的错误处理
+    try:
+        response = httpx.get(
+            "https://gist.githubusercontent.com/pseudoyu/48675a7b5e3cca534e7817595d566003/raw/"
+        )
+        response.raise_for_status() # 检查 HTTP 错误
+        return response.text
+    except Exception as e:
+        print(f"Error fetching Code Time: {e}")
+        return "Code time data fetch failed."
 
-# fetch_blog_entries 函数已被移除
 
 def fetch_douban():
-    # 模拟豆瓣动态
-    # 请替换为您的实际实现
+    # 模拟豆瓣动态 - 请替换为您的实际实现
     return [
         {"title": "在看东周列国·春秋篇", "url": "https://movie.douban.com/subject/2341884/", "published": "2025-11-22"},
         {"title": "想读欢乐英雄", "url": "https://book.douban.com/subject/1264579/", "published": "2025-10-25"},
@@ -71,33 +73,36 @@ def fetch_douban():
 
 def fetch_czh_blog_entries():
     """
-    抓取您的博客文章 (https://czhlove.cn/rss.xml) 并格式化
+    抓取 CZH Love 博客文章
     """
     print(f"Fetching CZH Blog RSS from: {RSS_URL}")
-    feed = feedparser.parse(RSS_URL)
-    
-    if not feed.entries:
-        print("Error: Could not retrieve or parse CZH RSS feed.")
-        return []
+    try:
+        feed = feedparser.parse(RSS_URL)
         
-    formatted_entries = []
-    for entry in feed.entries:
-        published_date = ""
-        try:
-            # 尝试解析日期并格式化
-            # 使用 datetime.datetime(*entry.published_parsed[:6]) 兼容性更好
-            date_obj = datetime.datetime(*entry.published_parsed[:6])
-            published_date = date_obj.strftime("%Y-%m-%d") # 简洁日期格式
-        except Exception:
-            published_date = "未知日期"
+        if not feed.entries:
+            print("Error: Could not retrieve or parse CZH RSS feed. Feed is empty.")
+            return []
             
-        formatted_entries.append({
-            "title": entry["title"],
-            "url": entry["link"].split("#")[0],
-            "date": published_date,
-        })
-        
-    return formatted_entries
+        formatted_entries = []
+        for entry in feed.entries:
+            published_date = ""
+            try:
+                # 尝试解析日期并格式化
+                date_obj = datetime.datetime(*entry.published_parsed[:6])
+                published_date = date_obj.strftime("%Y-%m-%d") # 简洁日期格式
+            except Exception:
+                published_date = "未知日期"
+                
+            formatted_entries.append({
+                "title": entry["title"],
+                "url": entry["link"].split("#")[0],
+                "date": published_date,
+            })
+            
+        return formatted_entries
+    except Exception as e:
+        print(f"Error during RSS fetch: {e}")
+        return []
 
 # --- 静态内容定义 ---
 
@@ -177,27 +182,34 @@ def get_github_stats():
 # --- 主执行逻辑 ---
 
 def main():
-    # 确保文件路径正确
     readme = root / README_FILE
     
-    # 检查 README 文件是否存在，如果不存在则创建包含标记的最小模板
+    # 检查 README 文件是否存在，如果不存在则创建包含静态头部和标记的最小模板
     if not readme.exists():
         print(f"Warning: {README_FILE} not found. Creating a minimal one.")
-        # 移除了 'blog' 相关的模板行
+        # 确保静态头部和统计信息块包含在初始模板中
         minimal_content = (
-            "<!-- profile_header starts --><!-- profile_header ends -->\n"
-            "<!-- github_stats starts --><!-- github_stats ends -->\n"
+            get_static_profile_header() + "\n" +
+            "<!-- github_stats starts -->" + get_github_stats() + "<!-- github_stats ends -->\n" +
             "#### 👨🏻‍💻 This Week I Code With\n<!-- code_time starts --><!-- code_time ends -->\n"
             "#### 🚀 CZH Love Blog\n<!-- czh_blog starts --><!-- czh_blog ends -->\n"
             "#### 🎧 Recent Digests\n<!-- douban starts --><!-- douban ends -->\n"
             "#### 💻 Recent Releases\n<!-- recent_releases starts --><!-- recent_releases ends -->\n"
         )
+        # 强制写入，确保基础内容到位
         with open(readme, "w", encoding="utf-8") as f:
             f.write(minimal_content)
+        print(f"Created initial {README_FILE} with {len(minimal_content)} characters.")
+        # 在这种情况下，我们应该退出，让 Git Actions 在下一个步骤提交新创建的文件
+        print("Initial file created. Please ensure the next Git step commits and pushes this new file.")
+        sys.exit(0) # 退出并让 CI 流程提交文件
 
     # 1. 读取 README 内容
     readme_contents = readme.open(encoding="utf-8").read()
     rewritten = readme_contents
+    
+    # 打印原始内容长度进行调试
+    print(f"Original README content length: {len(readme_contents)} characters.")
 
     # 2. 插入静态头部信息 (个人介绍和徽章)
     profile_header_md = get_static_profile_header()
@@ -208,51 +220,49 @@ def main():
     rewritten = replace_chunk(rewritten, "github_stats", github_stats_md)
     
     # 4. 更新 Code Time
-    try:
-        code_time_text = "\n```text\n"+fetch_code_time().text+"\n```\n"
-    except Exception as e:
-        print(f"Error fetching Code Time: {e}")
-        code_time_text = "\n```text\nCode time data fetch failed.\n```\n"
+    code_time_raw = fetch_code_time()
+    code_time_text = "\n```text\n"+ code_time_raw +"\n```\n"
     rewritten = replace_chunk(rewritten, "code_time", code_time_text)
 
-    # 5. 更新 Pseudoyu 博客文章 (相关代码已移除)
-
-    # 6. 更新您的 CZH Love 博客文章 (优化样式)
+    # 5. 更新您的 CZH Love 博客文章 (优化样式)
     czh_entries = fetch_czh_blog_entries()[:MAX_POSTS]
-    # 酷炫模板：🚀 **标题** *(日期)*
     czh_entries_md = "\n".join(
         [
             "* 🚀 **<a href={url} target='_blank'>{title}</a>** *({date})*".format(**entry) 
             for entry in czh_entries
         ]
     )
+    # 如果 RSS 获取失败，确保显示一个友好的占位符，而不是空列表
+    if not czh_entries_md:
+         czh_entries_md = "* 🚨 博客内容获取失败或暂无新文章。"
+         
     rewritten = replace_chunk(rewritten, "czh_blog", czh_entries_md)
     
-    # 7. 更新 Douban Digests
+    # 6. 更新 Douban Digests
     doubans = fetch_douban()[:5]
     doubans_md = "\n".join(
         ["* 🎧 <a href='{url}' target='_blank'>{title}</a> - {published}".format(**item) for item in doubans]
     )
     rewritten = replace_chunk(rewritten, "douban", doubans_md)
     
-    # 8. 更新 GitHub Releases
+    # 7. 更新 GitHub Releases
     releases = fetch_releases(TOKEN)
     releases.sort(key=lambda r: r.get("published_at", ""), reverse=True)
     md = "\n".join(
         [
-            # 💻 使用 Emoji 强调代码
             "* 💻 <a href={url} target='_blank'>{repo} {release}</a> - {published_at}".format(**release)
             for release in releases[:10]
         ]
     )
     rewritten = replace_chunk(rewritten, "recent_releases", md)
 
-    # 9. 写回 README 文件
+    # 8. 写回 README 文件
     if rewritten != readme_contents:
-        print("Content changed. Writing back to README.md...")
+        print(f"Content changed! New content length: {len(rewritten)} characters.")
+        print("Writing back to README.md...")
         readme.open("w", encoding="utf-8").write(rewritten)
     else:
-        print("No changes detected in README.md content. Skipping file write.")
+        print(f"No changes detected in README.md content. Content length: {len(rewritten)} characters. Skipping file write.")
 
 if __name__ == "__main__":
     main()
