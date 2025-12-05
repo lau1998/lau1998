@@ -18,7 +18,6 @@ except ImportError:
     
 # --- 配置 ---
 RSS_URL = "https://czhlove.cn/rss.xml"
-PSEUDOYU_RSS_URL = "https://www.pseudoyu.com/zh/index.xml"
 README_FILE = "README.md"
 MAX_POSTS = 8
 # --------------------
@@ -59,19 +58,6 @@ def fetch_code_time():
     return httpx.get(
         "https://gist.githubusercontent.com/pseudoyu/48675a7b5e3cca534e7817595d566003/raw/"
     )
-
-def fetch_blog_entries():
-    """抓取 pseudoyu 的博客 (原有逻辑)"""
-    print(f"Fetching Pseudoyu Blog RSS from: {PSEUDOYU_RSS_URL}")
-    entries = feedparser.parse(PSEUDOYU_RSS_URL)["entries"]
-    return [
-        {
-            "title": entry["title"],
-            "url": entry["link"].split("#")[0],
-            "published": entry["published"].split("T")[0],
-        }
-        for entry in entries
-    ]
 
 def fetch_douban():
     # 模拟豆瓣动态
