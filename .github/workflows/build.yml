@@ -2,33 +2,20 @@ name: build
 
 on:
   push:
-    # 仅在 main 分支推送时触发
-    branches:
-      - main
   workflow_dispatch:
   schedule:
-    # 每天 UTC 0:00 运行一次 (北京时间早上 8 点)
     - cron: "0 0 */1 * *"
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
-    # 📌 解决 403 错误的必要配置：授予内置 GITHUB_TOKEN 写入仓库内容的权限
-    permissions:
-      contents: write 
-      
     steps:
       - name: Check out repo
-        # 推荐使用最新的 checkout action
-        uses: actions/checkout@v4
-        
+        uses: actions/checkout@v2
       - name: Set up Python
-        # 推荐使用最新的 setup-python action
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
-          
       - uses: actions/cache@v4
         name: Configure pip caching
         with:
@@ -36,32 +23,20 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-            
       - name: Install Python dependencies
         run: |
           python -m pip install -r requirements.txt
-          
       - name: Update README
         env:
-          # GH_TOKEN 是您用于 GraphQL 身份验证的 PAT Secret
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |-
           python build_readme.py
-          # 此处已打印 README.md 内容
           cat README.md
-          
       - name: Commit and push if changed
         run: |-
-          # 检查是否有文件变化
           git diff
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           git add -A
-          # 只有在有文件变化时才创建提交，防止空提交
           git commit -m "ci: update profile (automatically)" || exit 0
-          # 使用 GITHUB_TOKEN (拥有 contents: write 权限) 推送更改
           git push
-          
-          # 📢 按您的要求，在最后一步再次打印 README.md
-          echo "--- Final README.md Content After Push ---"
-          cat README.md
