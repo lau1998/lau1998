@@ -1,0 +1,55 @@
+name: 自动更新博客文章到 README
+
+on:
+  # 每天运行一次（例如，在世界标准时间 02:00）
+  schedule:
+    - cron: '0 2 * * *'
+  # 允许手动运行
+  workflow_dispatch:
+
+jobs:
+  update_readme:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. 检出代码
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        # 必须深度克隆，以便后续能提交更改
+        with:
+          fetch-depth: 0
+
+      # 2. 设置 Python 环境
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # 3. 安装依赖
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # 4. 运行 Python 脚本更新 README.md
+      - name: Run Python script to update README
+        run: python update_readme.py
+        
+      # 5. 提交更改
+      # 使用您的 secrets.GH_TOKEN 来提交更改。
+      - name: Commit changes
+        # 仅在有文件更改时运行
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          # 检查是否有更改
+          if [ -n "$(git status --porcelain)" ]; then
+            git add README.md
+            git commit -m "feat: 自动更新最新博客文章 [Skip CI]"
+            # 使用 GH_TOKEN 推送
+            git push
+          else
+            echo "No changes to commit."
+          fi
+        env:
+          # 使用 secrets.GITHUB_TOKEN 是默认且推荐的做法
+          # 如果您需要额外的权限，可以创建个人访问令牌（PAT）并将其命名为 GH_TOKEN
+          # 但对于这个任务，默认的 GITHUB_TOKEN 通常就足够了。
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
