@@ -5,14 +5,14 @@ import hashlib
 from datetime import datetime
 from urllib.parse import quote
 
-# --- 配置 ---
-RSS_URL = "https://czhlove.cn/rss.xml"
-README_FILE = "README.md"
-MAX_POSTS = 5 
-START_MARKER = ""
-END_MARKER = ""
+def get_stable_seed(text):
+    return hashlib.md5(text.encode()).hexdigest()[:8]
 
-TEMPLATE = """
+def format_posts(posts):
+    # --- 配置直接写在这里，防止被外部错误的全局变量覆盖 ---
+    MAX_POSTS = 5
+    
+    TEMPLATE = """
 <td width="50%" valign="top">
     <a href="{link}" target="_blank">
         <img src="https://picsum.photos/seed/{seed}/400/220" width="100%" style="border-radius:8px; border:1px solid #30363d;" alt="{title}">
@@ -21,13 +21,8 @@ TEMPLATE = """
         <a href="{link}" target="_blank"><b>{title}</b></a><br/>
         <img src="https://img.shields.io/badge/Release-{date}-blue?style=flat-square" />
     </p>
-</td>
-"""
+</td>"""
 
-def get_stable_seed(text):
-    return hashlib.md5(text.encode()).hexdigest()[:8]
-
-def format_posts(posts):
     target_posts = posts[:MAX_POSTS]
     rows = []
     for i in range(0, len(target_posts), 2):
@@ -47,41 +42,60 @@ def format_posts(posts):
         rows.append(f"  <tr>{''.join(cells)}</tr>")
 
     table = '<table width="100%">\n' + "\n".join(rows) + "\n</table>"
-    footer = f'\n<div align="center"><a href="https://czhlove.cn/" target="_blank">查看更多文章</a></div>'
-    return table + footer
+    return table + f'\n<div align="center"><a href="https://czhlove.cn/" target="_blank">查看更多文章</a></div>'
 
 def update_readme(new_content):
-    if not os.path.exists(README_FILE):
+    file_path = "README.md"
+    # --- 关键：在这里硬编码标记位，确保绝不会是空字符串 ---
+    start_marker = ""
+    end_marker = ""
+
+    if not os.path.exists(file_path):
+        print(f"Error: {file_path} not found")
         return False
         
-    with open(README_FILE, "r", encoding="utf-8") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # --- 核心修复逻辑：不再使用 re.sub，改用字符串分割 ---
-    if START_MARKER not in content or END_MARKER not in content:
-        print("错误：README 中缺少标记位")
+    # 1. 检查标记位是否存在
+    if start_marker not in content or end_marker not in content:
+        print(f"Error: Markers '{start_marker}' or '{end_marker}' not found in README.md")
         return False
 
-    # 1. 取得标记位之前的内容 (Header)
-    # 取第一个 START_MARKER 之前的所有内容
-    header = content.split(START_MARKER)[0]
+    # 2. 物理切割：解决“重复内容”和“文件过大”的核心逻辑
+    # 逻辑：取 Start 之前的所有内容 + 新内容 + End 之后的所有内容
+    try:
+        # split 的参数绝对不能是空字符串，这里我们已经硬编码保证了
+        header = content.split(start_marker)[0]
+        footer = content.rsplit(end_marker, 1)[-1]
+        
+        # 重新组装
+        new_readme = f"{header}{start_marker}\n{new_content}\n{end_marker}{footer}"
+        
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(new_readme)
+        return True
+        
+    except Exception as e:
+        print(f"An error occurred during update: {str(e)}")
+        return False
+
+def main():
+    rss_url = "https://czhlove.cn/rss.xml"
+    print(f"Fetching RSS: {rss_url}")
+    feed = feedparser.parse(rss_url)
     
-    # 2. 取得标记位之后的内容 (Footer)
-    # 取最后一个 END_MARKER 之后的所有内容
-    footer = content.rsplit(END_MARKER, 1)[-1]
+    if not feed.entries:
+        print("Error: No entries found in RSS feed.")
+        return
 
-    # 3. 重新组装内容，彻底抛弃中间所有重复的垃圾数据
-    new_readme = f"{header}{START_MARKER}\n{new_content}\n{END_MARKER}{footer}"
-
-    with open(README_FILE, "w", encoding="utf-8") as f:
-        f.write(new_readme)
-    return True
+    print(f"Found {len(feed.entries)} posts.")
+    html = format_posts(feed.entries)
+    
+    if update_readme(html):
+        print("Success: README.md updated.")
+    else:
+        print("Failed to update README.md.")
 
 if __name__ == "__main__":
-    print("开始获取 RSS...")
-    feed = feedparser.parse(RSS_URL)
-    if feed.entries:
-        if update_readme(format_posts(feed.entries)):
-            print("README.md 更新成功！")
-    else:
-        print("RSS 源为空")
+    main()
