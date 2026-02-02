@@ -10,46 +10,74 @@ MAX_POSTS = 8
 START_MARKER = "<!-- BLOG-POST-LIST:START -->"
 END_MARKER = "<!-- BLOG-POST-LIST:END -->"
 
-TEMPLATE = "* 🚀 [{title}]({link}) - *{date}*"
+AUTHOR_NAME = "czhlove"
+
+# 两行“卡片感”模板：标题强、日期弱、观感精致
+TEMPLATE = (
+    "- **{idx}. [{title}]({link})**  \n"
+    "  <sub>📅 {date} · ✍️ {author}</sub>"
+)
 
 
-def format_posts(posts):
+def md_escape(text: str) -> str:
+    """简单转义可能影响 Markdown 链接/标题的字符"""
+    if not text:
+        return ""
+    return (
+        text.replace("[", "\\[")
+        .replace("]", "\\]")
+        .replace("(", "\\(")
+        .replace(")", "\\)")
+    )
+
+
+def pick_date(entry) -> str:
+    """兼容 RSS 常见日期字段：published / updated"""
+    dt = None
+    if getattr(entry, "published_parsed", None):
+        dt = datetime(*entry.published_parsed[:6])
+    elif getattr(entry, "updated_parsed", None):
+        dt = datetime(*entry.updated_parsed[:6])
+    return dt.strftime("%Y年%m月%d日") if dt else "未知日期"
+
+
+def format_posts(entries) -> str:
     formatted_list = []
-    for entry in posts[:MAX_POSTS]:
-        # RSS 里有的用 published_parsed，有的用 updated_parsed
-        dt = None
-        if getattr(entry, "published_parsed", None):
-            dt = datetime(*entry.published_parsed[:6])
-        elif getattr(entry, "updated_parsed", None):
-            dt = datetime(*entry.updated_parsed[:6])
-
-        formatted_date = dt.strftime("%Y年%m月%d日") if dt else "未知日期"
+    for i, entry in enumerate(entries[:MAX_POSTS], start=1):
+        title = md_escape(getattr(entry, "title", "无标题"))
+        link = getattr(entry, "link", "#")
+        date = pick_date(entry)
 
         formatted_list.append(
             TEMPLATE.format(
-                title=getattr(entry, "title", "无标题"),
-                link=getattr(entry, "link", "#"),
-                date=formatted_date,
+                idx=i,
+                title=title,
+                link=link,
+                date=date,
+                author=AUTHOR_NAME,
             )
         )
-    return "\n".join(formatted_list)
+
+    header = f"✨ 最近更新（保留 {MAX_POSTS} 篇）\n\n"
+    return header + "\n".join(formatted_list)
 
 
-def update_readme(new_content: str) -> bool:
+def update_readme(new_block: str) -> bool:
     with open(README_FILE, "r", encoding="utf-8") as f:
         readme = f.read()
 
     if START_MARKER not in readme or END_MARKER not in readme:
         raise RuntimeError(
-            f"README 中未找到标记，请确认包含：\n{START_MARKER}\n{END_MARKER}"
+            "README 中未找到标记区块，请确保包含：\n"
+            f"{START_MARKER}\n{END_MARKER}"
         )
 
-    # 非贪婪匹配，且对 marker 做 escape，避免正则特殊字符问题
+    # 非贪婪匹配，只替换标记之间内容，避免误伤
     pattern = re.compile(
         re.escape(START_MARKER) + r"[\s\S]*?" + re.escape(END_MARKER)
     )
 
-    replacement = f"{START_MARKER}\n{new_content}\n{END_MARKER}"
+    replacement = f"{START_MARKER}\n{new_block}\n{END_MARKER}"
     new_readme = pattern.sub(replacement, readme, count=1)
 
     if new_readme != readme:
@@ -62,16 +90,16 @@ def update_readme(new_content: str) -> bool:
 
 def main():
     feed = feedparser.parse(RSS_URL)
-    if not feed.entries:
-        raise RuntimeError("RSS 获取失败或解析不到 entries，请检查 RSS_URL。")
+    if not getattr(feed, "entries", None):
+        raise RuntimeError(f"RSS 获取失败或没有 entries：{RSS_URL}")
 
-    new_posts = format_posts(feed.entries)
-    changed = update_readme(new_posts)
+    new_block = format_posts(feed.entries)
+    changed = update_readme(new_block)
 
     if changed:
-        print("README.md updated.")
+        print("✅ README.md updated.")
     else:
-        print("No changes detected.")
+        print("ℹ️ No changes detected. README.md unchanged.")
 
 
 if __name__ == "__main__":
