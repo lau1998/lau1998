@@ -1,5 +1,4 @@
 import feedparser
-import re
 import os
 import hashlib
 from datetime import datetime
@@ -9,9 +8,8 @@ def get_stable_seed(text):
     return hashlib.md5(text.encode()).hexdigest()[:8]
 
 def format_posts(posts):
-    # --- 配置直接写在这里，防止被外部错误的全局变量覆盖 ---
     MAX_POSTS = 5
-    
+    # 使用 picsum + seed 确保图片稳定且随机
     TEMPLATE = """
 <td width="50%" valign="top">
     <a href="{link}" target="_blank">
@@ -34,9 +32,12 @@ def format_posts(posts):
                 formatted_date = date_obj.strftime("%Y-%m-%d")
             except:
                 formatted_date = "Recently"
+            
+            # 清理标题特殊字符
             title = entry.title.replace('"', "'").replace('<', '&lt;').replace('>', '&gt;')
             seed = get_stable_seed(entry.link)
             cells.append(TEMPLATE.format(title=title, link=entry.link, date=quote(formatted_date), seed=seed))
+        
         if len(cells) == 1:
             cells.append('<td width="50%"></td>')
         rows.append(f"  <tr>{''.join(cells)}</tr>")
@@ -46,56 +47,39 @@ def format_posts(posts):
 
 def update_readme(new_content):
     file_path = "README.md"
-    # --- 关键：在这里硬编码标记位，确保绝不会是空字符串 ---
     start_marker = ""
     end_marker = ""
-
+    
     if not os.path.exists(file_path):
-        print(f"Error: {file_path} not found")
+        print("README.md not found!")
         return False
         
     with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # 1. 检查标记位是否存在
     if start_marker not in content or end_marker not in content:
-        print(f"Error: Markers '{start_marker}' or '{end_marker}' not found in README.md")
+        print("Error: 标记位丢失！请在 README.md 中添加 和 ")
         return False
 
-    # 2. 物理切割：解决“重复内容”和“文件过大”的核心逻辑
-    # 逻辑：取 Start 之前的所有内容 + 新内容 + End 之后的所有内容
+    # 物理截断法：不管中间有什么垃圾数据，直接丢弃，只拼接头尾和新内容
     try:
-        # split 的参数绝对不能是空字符串，这里我们已经硬编码保证了
         header = content.split(start_marker)[0]
         footer = content.rsplit(end_marker, 1)[-1]
-        
-        # 重新组装
         new_readme = f"{header}{start_marker}\n{new_content}\n{end_marker}{footer}"
         
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(new_readme)
+        print("README 内容已在本地更新...")
         return True
-        
     except Exception as e:
-        print(f"An error occurred during update: {str(e)}")
+        print(f"Error updating file: {e}")
         return False
 
-def main():
-    rss_url = "https://czhlove.cn/rss.xml"
-    print(f"Fetching RSS: {rss_url}")
-    feed = feedparser.parse(rss_url)
-    
-    if not feed.entries:
-        print("Error: No entries found in RSS feed.")
-        return
-
-    print(f"Found {len(feed.entries)} posts.")
-    html = format_posts(feed.entries)
-    
-    if update_readme(html):
-        print("Success: README.md updated.")
-    else:
-        print("Failed to update README.md.")
-
 if __name__ == "__main__":
-    main()
+    rss_url = "https://czhlove.cn/rss.xml"
+    feed = feedparser.parse(rss_url)
+    if feed.entries:
+        if update_readme(format_posts(feed.entries)):
+            print("脚本运行完成，等待 Git Push...")
+    else:
+        print("RSS 无内容")
