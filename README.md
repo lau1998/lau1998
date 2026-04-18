@@ -12,22 +12,22 @@
 <!-- BLOG-POST-LIST:START -->
 ✨ 最近更新（保留 8 篇）
 
-- **1. [Next.js 里最容易踩的 6 个性能坑](https://czhlove.cn/nextjsServer)**  
+- **1. [AI Agent Skills 是什么？以及几类适合编程和前端开发的 Skills](https://czhlove.cn/aiAgentSkills)**  
+  <sub>📅 2026年04月17日 · ✍️ czhlove</sub>
+- **2. [Next.js 里最容易踩的 6 个性能坑](https://czhlove.cn/nextjsServer)**  
   <sub>📅 2026年03月12日 · ✍️ czhlove</sub>
-- **2. [记一次把 Nest.js 部署到 Vercel 的避坑经历](https://czhlove.cn/vercelDeployNextJs)**  
+- **3. [记一次把 Nest.js 部署到 Vercel 的避坑经历](https://czhlove.cn/vercelDeployNextJs)**  
   <sub>📅 2026年01月30日 · ✍️ czhlove</sub>
-- **3. [窗棂上的暮光与星子 —— 重读《小王子》记](https://czhlove.cn/theLittlePrince)**  
+- **4. [窗棂上的暮光与星子 —— 重读《小王子》记](https://czhlove.cn/theLittlePrince)**  
   <sub>📅 2025年09月09日 · ✍️ czhlove</sub>
-- **4. [Vue 2 + Docker + config.js + envsubst 实现运行时动态获取容器环境变量](https://czhlove.cn/envsubst)**  
+- **5. [Vue 2 + Docker + config.js + envsubst 实现运行时动态获取容器环境变量](https://czhlove.cn/envsubst)**  
   <sub>📅 2025年03月29日 · ✍️ czhlove</sub>
-- **5. [AI来了，你怕不怕？](https://czhlove.cn/deepSeekAI)**  
+- **6. [AI来了，你怕不怕？](https://czhlove.cn/deepSeekAI)**  
   <sub>📅 2025年02月09日 · ✍️ czhlove</sub>
-- **6. [解决前端crypto-js库解密失败的错误](https://czhlove.cn/cryptoJs)**  
+- **7. [解决前端crypto-js库解密失败的错误](https://czhlove.cn/cryptoJs)**  
   <sub>📅 2025年01月09日 · ✍️ czhlove</sub>
-- **7. [一行CSS代码提升Web开发效率和用户体验](https://czhlove.cn/modern-css)**  
+- **8. [一行CSS代码提升Web开发效率和用户体验](https://czhlove.cn/modern-css)**  
   <sub>📅 2024年11月22日 · ✍️ czhlove</sub>
-- **8. [微信小程序使用 web-view 功能，实现内嵌 H5 项目](https://czhlove.cn/webView)**  
-  <sub>📅 2024年10月14日 · ✍️ czhlove</sub>
 <!-- BLOG-POST-LIST:END -->
 
 </details>
