@@ -20,7 +20,7 @@
   <sub>📅 2026年03月12日 · ✍️ czhlove</sub>
 - **4. [记一次把 Nest.js 部署到 Vercel 的避坑经历](https://czhlove.cn/vercelDeployNextJs)**  
   <sub>📅 2026年01月30日 · ✍️ czhlove</sub>
-- **5. [窗棂上的暮光与星子 —— 重读《小王子》记](https://czhlove.cn/theLittlePrince)**  
+- **5. [重读《小王子》记](https://czhlove.cn/theLittlePrince)**  
   <sub>📅 2025年09月09日 · ✍️ czhlove</sub>
 - **6. [Vue 2 + Docker + config.js + envsubst 实现运行时动态获取容器环境变量](https://czhlove.cn/envsubst)**  
   <sub>📅 2025年03月29日 · ✍️ czhlove</sub>
